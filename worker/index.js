@@ -15,9 +15,9 @@ function authorized(request, env) {
 }
 
 function validatePolygon(geometry) {
-  if (!geometry || geometry.type !== 'Polygon' || !Array.isArray(geometry.coordinates) || !Array.isArray(geometry.coordinates[0])) return false;
+  if (!geometry || geometry.type !== 'Polygon' || !Array.isArray(geometry.coordinates) || geometry.coordinates.length !== 1 || !Array.isArray(geometry.coordinates[0])) return false;
   const ring = geometry.coordinates[0];
-  return ring.length >= 4 &&
+  return ring.length >= 4 && ring.length <= 5000 &&
     ring.every(point => Array.isArray(point) && point.length >= 2 &&
       Number.isFinite(point[0]) && Number.isFinite(point[1]) &&
       Math.abs(point[0]) <= 180 && Math.abs(point[1]) <= 90) &&
@@ -66,6 +66,8 @@ async function handleApi(request, env) {
   }
 
   if (url.pathname === '/api/zones' && request.method === 'POST') {
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > 100_000) return json({ error: 'Request body is too large' }, 413);
     let body;
     try { body = await request.json(); } catch { return json({ error: 'Request body must be valid JSON' }, 400); }
     const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : '';
@@ -170,7 +172,7 @@ async function scanZone(zone, env, timestamp) {
 async function runScheduledMonitoring(env) {
   const timestamp = new Date().toISOString();
   const zonesResult = await env.DB.prepare(
-    'SELECT id, geometry_json FROM monitoring_zones WHERE active = 1 ORDER BY created_at ASC LIMIT ?'
+    "SELECT id, geometry_json FROM monitoring_zones WHERE active = 1 ORDER BY COALESCE(last_checked_at, '') ASC, created_at ASC LIMIT ?"
   ).bind(MAX_ZONES_PER_SCAN).all();
   const zones = zonesResult.results || [];
   let totalScenes = 0;
@@ -182,11 +184,13 @@ async function runScheduledMonitoring(env) {
       await env.DB.prepare(
         'INSERT INTO monitoring_runs (id, zone_id, status, scenes_added, started_at, finished_at, details_json) VALUES (?, ?, ?, ?, ?, ?, ?)'
       ).bind(crypto.randomUUID(), zone.id, 'completed', result.scenes, timestamp, new Date().toISOString(), JSON.stringify(result)).run();
+      await env.DB.prepare('UPDATE monitoring_zones SET last_checked_at = ? WHERE id = ?').bind(timestamp, zone.id).run();
     } catch (error) {
       failedZones++;
       await env.DB.prepare(
         'INSERT INTO monitoring_runs (id, zone_id, status, scenes_added, started_at, finished_at, details_json) VALUES (?, ?, ?, 0, ?, ?, ?)'
       ).bind(crypto.randomUUID(), zone.id, 'failed', timestamp, new Date().toISOString(), JSON.stringify({ error: error.message })).run();
+      await env.DB.prepare('UPDATE monitoring_zones SET last_checked_at = ? WHERE id = ?').bind(timestamp, zone.id).run();
     }
   }
   return { zonesChecked: zones.length, scenesAdded: totalScenes, failedZones };
