@@ -20,14 +20,20 @@ jobs:
           node-version: 22
       - name: Test
         run: npm test
-      - name: Apply D1 migrations and deploy Worker
+      - name: Apply D1 migrations, set API secret and deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EARTH_SIGNAL_API_TOKEN: ${{ secrets.EARTH_SIGNAL_API_TOKEN }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "Cloudflare credentials are not configured; deployment skipped."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$EARTH_SIGNAL_API_TOKEN" ]; then
+            echo "Cloudflare account/database setup or GitHub Actions secrets are incomplete; deployment skipped."
             exit 0
           fi
+          if grep -q 'REPLACE_WITH_D1_DATABASE_ID' wrangler.jsonc; then
+            echo "Set the real D1 database UUID in wrangler.jsonc before deploying."
+            exit 1
+          fi
           npx --yes wrangler@latest d1 migrations apply earth-signal-db --remote
+          printf '%s' "$EARTH_SIGNAL_API_TOKEN" | npx --yes wrangler@latest secret put API_TOKEN
           npx --yes wrangler@latest deploy
