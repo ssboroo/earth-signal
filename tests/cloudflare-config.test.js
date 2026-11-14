@@ -36,7 +36,7 @@ test('GitHub deploy workflow gates deployment on all required secrets', () => {
   for (const secret of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'EARTH_SIGNAL_API_TOKEN']) {
     assert.ok(workflow.includes(`secrets.${secret}`));
   }
-  assert.ok(workflow.includes('d1 migrations apply DB --remote'));
+  assert.ok(workflow.includes('d1 migrations apply earth-signal-db --remote'));
   assert.ok(workflow.includes('wrangler@latest deploy'));
 });
 
