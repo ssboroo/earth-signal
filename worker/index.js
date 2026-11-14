@@ -61,8 +61,11 @@ async function handleApi(request, env) {
   if (url.pathname === '/api/zones' && request.method === 'POST') {
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > 100_000) return json({ error: 'Request body is too large' }, 413);
+    let rawBody;
+    try { rawBody = await request.text(); } catch { return json({ error: 'Could not read request body' }, 400); }
+    if (new TextEncoder().encode(rawBody).byteLength > 100_000) return json({ error: 'Request body is too large' }, 413);
     let body;
-    try { body = await request.json(); } catch { return json({ error: 'Request body must be valid JSON' }, 400); }
+    try { body = JSON.parse(rawBody); } catch { return json({ error: 'Request body must be valid JSON' }, 400); }
     const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : '';
     if (!name) return json({ error: 'Zone name is required' }, 400);
     if (!validatePolygon(body?.geometry)) return json({ error: 'A valid Polygon geometry is required' }, 400);
