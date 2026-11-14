@@ -67,6 +67,17 @@
         <div id="scene-results" style="display:grid;gap:8px;margin-top:9px"></div>
       </section>
       <section class="section">
+        <div class="eyebrow">Monitoring zones</div>
+        <p class="intro">Draw a polygon on the map to define an area of interest. Areas are measured geodesically and stored in this browser only.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px">
+          <button class="action" id="zone-draw">Draw area</button>
+          <button class="action" id="zone-save" disabled>Finish & save</button>
+        </div>
+        <button class="action" id="zone-clear" style="width:100%;margin-top:7px">Clear saved zones</button>
+        <div id="zone-status" class="intro" role="status" aria-live="polite" style="margin-top:9px">No area selected</div>
+        <div id="zone-list" style="display:grid;gap:5px;margin-top:7px"></div>
+      </section>
+      <section class="section">
         <div class="eyebrow">Explore region</div>
         <div class="quick">
           <button data-center="104,47" data-zoom="4">🇲🇳 Mongolia</button>
@@ -103,7 +114,7 @@
 <script type="module">
 import { searchSentinelScenes } from "./src/stac.js";
 import { analyzeSentinelScene } from "./src/sentinel-analysis.js";
-import { classifyIndex } from "./src/analytics.js";
+import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
 (() => {
   const $ = (id) => document.getElementById(id);
   const dateInput = $('date');
@@ -146,6 +157,10 @@ import { classifyIndex } from "./src/analytics.js";
     map.addLayer({ id:'sentinel-scenes-fill', type:'fill', source:'sentinel-scenes', filter:['==',['geometry-type'],'Polygon'], paint:{'fill-color':'#48d7e8','fill-opacity':0.13} });
     map.addLayer({ id:'sentinel-scenes-outline', type:'line', source:'sentinel-scenes', filter:['==',['geometry-type'],'Polygon'], paint:{'line-color':'#48d7e8','line-width':1.5} });
     map.addLayer({ id:'sentinel-scenes-points', type:'circle', source:'sentinel-scenes', filter:['==',['geometry-type'],'Point'], paint:{'circle-radius':7,'circle-color':'#48d7e8','circle-stroke-color':'#061321','circle-stroke-width':2} });
+    map.addSource('monitoring-zones',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'monitoring-zones-fill',type:'fill',source:'monitoring-zones',paint:{'fill-color':'#79e0b0','fill-opacity':0.12}});
+    map.addLayer({id:'monitoring-zones-outline',type:'line',source:'monitoring-zones',paint:{'line-color':'#79e0b0','line-width':2}});
+    map.addLayer({id:'monitoring-zone-draft',type:'line',source:'monitoring-zones',filter:['==',['get','draft'],true],paint:{'line-color':'#f5c76b','line-width':2,'line-dasharray':[2,2]}});
   });
 
   function tileTemplate(product,date){
@@ -207,6 +222,75 @@ import { classifyIndex } from "./src/analytics.js";
     $('coords').textContent=e.lngLat.lat.toFixed(3)+'°, '+e.lngLat.lng.toFixed(3)+'°';
   });
   map.on('mouseout',()=>{$('coords').textContent='Move over map';});
+
+  const zoneStatus=$('zone-status');
+  const zoneList=$('zone-list');
+  const zoneDraw=$('zone-draw');
+  const zoneSave=$('zone-save');
+  let drawingZone=false;
+  let draftPoints=[];
+  let savedZones=[];
+  try {
+    const stored=JSON.parse(localStorage.getItem('earth-signal-zones')||'[]');
+    if(Array.isArray(stored)) savedZones=stored.filter(zone=>zone && Array.isArray(zone.coordinates) && zone.coordinates.length>=4 && zone.coordinates.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite)));
+  } catch { savedZones=[]; }
+  const zoneFeature=zone=>({type:'Feature',properties:{id:zone.id,name:zone.name,areaHa:zone.areaHa},geometry:{type:'Polygon',coordinates:[zone.coordinates]}});
+  function renderZones(){
+    const features=savedZones.map(zoneFeature);
+    if(draftPoints.length>=2){
+      const line=[...draftPoints];
+      if(!drawingZone && draftPoints.length>=3) line.push(draftPoints[0]);
+      features.push({type:'Feature',properties:{draft:true},geometry:{type:'LineString',coordinates:line}});
+    }
+    map.getSource('monitoring-zones')?.setData({type:'FeatureCollection',features});
+    zoneList.replaceChildren();
+    savedZones.forEach(zone=>{
+      const item=document.createElement('div');
+      item.className='metric';
+      const name=document.createElement('span'); name.textContent=zone.name;
+      const area=document.createElement('strong'); area.textContent=zone.areaHa.toFixed(2)+' ha';
+      item.append(name,area); zoneList.append(item);
+    });
+    if(!savedZones.length && !draftPoints.length) zoneStatus.textContent='No area selected';
+  }
+  zoneDraw.addEventListener('click',()=>{
+    drawingZone=true; draftPoints=[];
+    map.doubleClickZoom.disable();
+    zoneSave.disabled=true;
+    zoneStatus.textContent='Click at least 3 points on the map to outline your area.';
+    zoneDraw.textContent='Drawing…';
+    renderZones();
+  });
+  map.on('click',event=>{
+    if(!drawingZone) return;
+    draftPoints.push([event.lngLat.lng,event.lngLat.lat]);
+    zoneSave.disabled=draftPoints.length<3;
+    const area=draftPoints.length>=3 ? polygonAreaHectares([...draftPoints,draftPoints[0]]) : null;
+    zoneStatus.textContent=draftPoints.length+' points · estimated area '+(area===null?'—':area.toFixed(2)+' ha');
+    renderZones();
+  });
+  zoneSave.addEventListener('click',()=>{
+    if(!drawingZone || draftPoints.length<3) return;
+    const coordinates=[...draftPoints,draftPoints[0]];
+    const areaHa=polygonAreaHectares(coordinates);
+    if(!Number.isFinite(areaHa) || areaHa<=0){zoneStatus.textContent='Could not calculate this polygon. Redraw the area.';return;}
+    const zone={id:'zone-'+Date.now(),name:'Monitoring zone '+(savedZones.length+1),coordinates,areaHa};
+    savedZones.push(zone);
+    try { localStorage.setItem('earth-signal-zones',JSON.stringify(savedZones)); }
+    catch { zoneStatus.textContent='Browser storage is unavailable; this area cannot be saved persistently.'; savedZones.pop(); return; }
+    drawingZone=false; draftPoints=[]; zoneSave.disabled=true; zoneDraw.textContent='Draw area';
+    map.doubleClickZoom.enable();
+    zoneStatus.textContent=zone.name+' saved · '+areaHa.toFixed(2)+' hectares';
+    renderZones();
+  });
+  $('zone-clear').addEventListener('click',()=>{
+    savedZones=[]; draftPoints=[]; drawingZone=false; zoneSave.disabled=true; zoneDraw.textContent='Draw area';
+    map.doubleClickZoom.enable();
+    try { localStorage.removeItem('earth-signal-zones'); } catch {}
+    zoneStatus.textContent='All saved zones cleared.';
+    renderZones();
+  });
+  map.on('load',renderZones);
 
   const sceneStatus = $('scene-status');
   const sceneResults = $('scene-results');
