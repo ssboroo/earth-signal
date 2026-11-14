@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Earth Signal — explore near-real-time NASA satellite imagery and monitor changes across Earth.">
+  <title>EARTH SIGNAL — Earth Intelligence</title>
+  <link rel="preconnect" href="https://gibs.earthdata.nasa.gov">
+  <link rel="preconnect" href="https://demotiles.maplibre.org">
+  <link href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#07111f;--panel:#0c1929;--panel2:#102238;--line:#20354b;--text:#eaf2fb;--muted:#91a5ba;--cyan:#48d7e8;--green:#79e0b0}
+    *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+    .app{height:100%;display:grid;grid-template-rows:68px 1fr;overflow:hidden}.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#091524;z-index:3}
+    .brand{display:flex;align-items:center;gap:12px}.mark{width:34px;height:34px;border:1px solid #2a7180;border-radius:10px;display:grid;place-items:center;color:var(--cyan);font-size:19px;background:#0b2735}.brand-name{font-weight:800;letter-spacing:.16em;font-size:13px}.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.12em;margin-top:3px}
+    .top-actions{display:flex;align-items:center;gap:10px}.status{font-size:11px;color:var(--green);border:1px solid #285b4c;background:#10291f;padding:7px 10px;border-radius:20px}.clock{font-size:11px;color:var(--muted)}
+    .workspace{min-height:0;display:grid;grid-template-columns:310px 1fr}.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow:auto}.eyebrow{font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:700;text-transform:uppercase;margin:5px 0 12px}.section{padding-bottom:18px;margin-bottom:17px;border-bottom:1px solid var(--line)}
+    h1{font-size:22px;line-height:1.15;margin:0 0 8px;letter-spacing:-.04em}.intro{font-size:12px;color:var(--muted);line-height:1.6;margin:0}.field-label{display:block;font-size:11px;color:#b7c7d8;margin:13px 0 7px}
+    select,input,button{font:inherit}select,input[type=date]{width:100%;background:#081421;color:var(--text);border:1px solid #294158;border-radius:8px;padding:10px;font-size:12px;outline:none}select:focus,input:focus,button:focus-visible{border-color:var(--cyan);outline:2px solid #48d7e833}
+    .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick button,.action{background:#13263a;border:1px solid #294158;color:#dceaf7;border-radius:8px;padding:9px 10px;font-size:11px;cursor:pointer;text-align:left}.quick button:hover,.action:hover{border-color:var(--cyan);background:#173247}
+    .metric{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #1b2d40;font-size:11px}.metric span:first-child{color:var(--muted)}.metric strong{font-variant-numeric:tabular-nums;font-weight:650}
+    .legend{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:10px;line-height:1.5}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px #79e0b0}
+    .notice{font-size:10px;line-height:1.55;color:#9eb2c6;background:#0a1c2d;border:1px solid #1d354c;padding:10px;border-radius:8px}
+    .map-wrap{position:relative;min-width:0;min-height:0;background:#07111f}#map{position:absolute;inset:0}.maplibregl-ctrl-group{background:#0c1929!important;border:1px solid #294158!important}.maplibregl-ctrl button span{filter:invert(1)}
+    .map-chip{position:absolute;top:16px;left:16px;z-index:2;background:#091827eF;border:1px solid #294158;border-radius:9px;padding:10px 12px;backdrop-filter:blur(12px);font-size:11px}.map-chip strong{display:block;font-size:12px;margin-bottom:3px}.map-chip span{color:var(--muted)}
+    .map-footer{position:absolute;bottom:16px;left:16px;right:16px;z-index:2;display:flex;justify-content:space-between;align-items:end;pointer-events:none}.source-tag{background:#091827eF;border:1px solid #294158;border-radius:8px;padding:8px 10px;font-size:10px;color:#b7c7d8;max-width:min(520px,75%);line-height:1.5;pointer-events:auto}.coords{font-size:10px;color:#dceaf7;background:#091827eF;border:1px solid #294158;padding:8px 10px;border-radius:8px}
+    .error{display:none;margin-top:9px;color:#ffb6a9;font-size:10px;line-height:1.5}.loading{position:absolute;inset:0;display:grid;place-items:center;background:#07111f;z-index:5;color:var(--muted);font-size:12px;transition:opacity .3s}.loading.hidden{opacity:0;pointer-events:none}
+    @media(max-width:760px){.app{grid-template-rows:58px 1fr}.topbar{padding:0 13px}.workspace{grid-template-columns:1fr;grid-template-rows:auto 1fr}.sidebar{max-height:42vh;padding:13px;border-right:0;border-bottom:1px solid var(--line)}.section{padding-bottom:10px;margin-bottom:10px}.intro{max-width:600px}.map-wrap{min-height:320px}.brand-sub,.clock{display:none}.map-chip{top:10px;left:10px}.map-footer{bottom:10px;left:10px;right:10px}.source-tag{max-width:80%}}
+    @media(min-width:761px) and (max-height:700px){.sidebar{padding:12px}.section{margin-bottom:10px;padding-bottom:10px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="mark" aria-hidden="true">◉</div><div><div class="brand-name">EARTH SIGNAL</div><div class="brand-sub">GLOBAL EARTH INTELLIGENCE</div></div></div>
+    <div class="top-actions"><span class="clock" id="utc-clock">UTC —</span><span class="status"><span class="dot" style="display:inline-block;margin-right:6px"></span>PUBLIC DATA MODE</span></div>
+  </header>
+  <main class="workspace">
+    <aside class="sidebar">
+      <section class="section"><div class="eyebrow">Earth observation</div><h1>See what is changing on Earth.</h1><p class="intro">Explore recent satellite observations from NASA's open imagery services. Select a layer and date to inspect the planet.</p></section>
+      <section class="section">
+        <div class="eyebrow">Satellite imagery</div>
+        <label class="field-label" for="layer">Imagery product</label>
+        <select id="layer">
+          <option value="MODIS_Terra_CorrectedReflectance_TrueColor">MODIS Terra · True Color</option>
+          <option value="MODIS_Aqua_CorrectedReflectance_TrueColor">MODIS Aqua · True Color</option>
+          <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">VIIRS Suomi-NPP · True Color</option>
+        </select>
+        <label class="field-label" for="date">Observation date (UTC)</label>
+        <input id="date" type="date">
+        <div id="date-error" class="error" role="status"></div>
+        <p class="intro" style="margin-top:9px">Imagery availability varies by product. Recent dates may not be published yet.</p>
+      </section>
+      <section class="section">
+        <div class="eyebrow">Explore region</div>
+        <div class="quick">
+          <button data-center="104,47" data-zoom="4">🇲🇳 Mongolia</button>
+          <button data-center="-101,40" data-zoom="3">North America</button>
+          <button data-center="20,5" data-zoom="3">Africa</button>
+          <button data-center="100,20" data-zoom="3">Asia Pacific</button>
+          <button data-center="15,50" data-zoom="3">Europe</button>
+          <button data-center="-60,-15" data-zoom="3">South America</button>
+        </div>
+      </section>
+      <section class="section">
+        <div class="eyebrow">Map status</div>
+        <div class="metric"><span>Imagery source</span><strong>NASA GIBS</strong></div>
+        <div class="metric"><span>Selected product</span><strong id="product-name">MODIS Terra</strong></div>
+        <div class="metric"><span>Selected date</span><strong id="date-label">—</strong></div>
+        <div class="metric"><span>Map mode</span><strong>Global</strong></div>
+      </section>
+      <section class="section">
+        <div class="eyebrow">Data integrity</div>
+        <div class="legend"><span class="dot"></span> Public satellite service reachable</div>
+        <p class="notice" style="margin-top:10px">This is near-real-time satellite imagery, not live video. Acquisition, processing and publication introduce delays. Clouds, darkness and sensor resolution affect visibility. A visual difference is not automatically a verified environmental event.</p>
+      </section>
+      <div class="notice">Data: NASA Global Imagery Browse Services (GIBS). Basemap: OpenStreetMap contributors. External services have independent availability and usage policies.</div>
+    </aside>
+    <section class="map-wrap" aria-label="Interactive satellite map">
+      <div id="map"></div>
+      <div class="map-chip"><strong id="map-title">MODIS Terra · True Color</strong><span id="map-subtitle">NASA satellite imagery</span></div>
+      <div class="map-footer"><div class="source-tag">NASA GIBS · Corrected Reflectance · <span id="source-date">—</span><br>Satellite imagery may be delayed and is not a live video feed.</div><div class="coords" id="coords">Move over map</div></div>
+      <div class="loading" id="loading">Loading global map…</div>
+    </section>
+  </main>
+</div>
+<script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const dateInput = $('date');
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const iso = d => d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
+  // GIBS daily global composites are not guaranteed on the acquisition day; default to a conservative recent date.
+  const initialDate = new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-2));
+  dateInput.value = iso(initialDate);
+  dateInput.max = iso(now);
+  $('date-label').textContent = iso(initialDate);
+  $('source-date').textContent = iso(initialDate);
+  $('utc-clock').textContent = 'UTC '+pad(now.getUTCHours())+':'+pad(now.getUTCMinutes());
+
+  const products = {
+    MODIS_Terra_CorrectedReflectance_TrueColor: {name:'MODIS Terra', title:'MODIS Terra · True Color', ext:'jpg'},
+    MODIS_Aqua_CorrectedReflectance_TrueColor: {name:'MODIS Aqua', title:'MODIS Aqua · True Color', ext:'jpg'},
+    VIIRS_SNPP_CorrectedReflectance_TrueColor: {name:'VIIRS Suomi-NPP', title:'VIIRS Suomi-NPP · True Color', ext:'jpg'}
+  };
+  const map = new maplibregl.Map({
+    container:'map',
+    center:[104,47],
+    zoom:3,
+    minZoom:1,
+    maxZoom:9,
+    style:{
+      version:8,
+      sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},
+      layers:[{id:'osm',type:'raster',source:'osm'}]
+    },
+    attributionControl:true
+  });
+  map.addControl(new maplibregl.NavigationControl({showCompass:true}),'top-right');
+  map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:'metric'}),'bottom-right');
+
+  function tileTemplate(product,date){
+    return 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/'+product+'/default/'+date+'/GoogleMapsCompatible_Level9/{z}/{y}/{x}.'+products[product].ext;
+  }
+  function updateImagery(){
+    const product = $('layer').value;
+    const date = dateInput.value;
+    if(!date || date > iso(new Date())) { $('date-error').textContent='Choose a valid date no later than today (UTC).'; $('date-error').style.display='block'; return; }
+    $('date-error').style.display='none';
+    $('product-name').textContent = products[product].name;
+    $('map-title').textContent = products[product].title;
+    $('date-label').textContent = date;
+    $('source-date').textContent = date;
+    const sourceId='nasa-gibs-imagery';
+    const layerId='nasa-gibs-layer';
+    if(map.getLayer(layerId)) map.removeLayer(layerId);
+    if(map.getSource(sourceId)) map.removeSource(sourceId);
+    map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256, attribution:'NASA Global Imagery Browse Services (GIBS)'});
+    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':1}});
+  }
+  map.on('load',()=>{
+    updateImagery();
+    $('loading').classList.add('hidden');
+  });
+  map.on('error',e=>{
+    if(e && e.error) console.warn('Map service notice:',e.error.message);
+  });
+  $('layer').addEventListener('change',updateImagery);
+  dateInput.addEventListener('change',updateImagery);
+  document.querySelectorAll('[data-center]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const center=button.dataset.center.split(',').map(Number);
+      map.flyTo({center,zoom:Number(button.dataset.zoom),duration:1100});
+    });
+  });
+  map.on('mousemove',e=>{
+    $('coords').textContent=e.lngLat.lat.toFixed(3)+'°, '+e.lngLat.lng.toFixed(3)+'°';
+  });
+  map.on('mouseout',()=>{$('coords').textContent='Move over map';});
+})();
+</script>
+</body>
+</html>
