@@ -55,3 +55,14 @@ test('zone API stores a valid polygon and returns its measured area', async () =
   assert.ok(body.zone.areaHa > 0);
   assert.equal(body.zone.geometry.type, 'Polygon');
 });
+
+test('zone API rejects polygons with holes until hole-aware area measurement is supported', async () => {
+  const outer = [[104,47],[104.02,47],[104.02,47.02],[104,47.02],[104,47]];
+  const hole = [[104.005,47.005],[104.01,47.005],[104.01,47.01],[104.005,47.01],[104.005,47.005]];
+  const response = await worker.fetch(new Request('https://earth-signal.test/api/zones', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-secret', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'zone with hole', geometry: { type: 'Polygon', coordinates: [outer, hole] } })
+  }), env());
+  assert.equal(response.status, 400);
+});
