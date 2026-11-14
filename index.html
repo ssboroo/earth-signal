@@ -51,6 +51,13 @@
         <input id="date" type="date">
         <div id="date-error" class="error" role="status"></div>
         <p class="intro" style="margin-top:9px">Imagery availability varies by product. Recent dates may not be published yet.</p>
+        <label class="field-label" for="compare-toggle">Temporal comparison</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#c5d4e2"><input id="compare-toggle" type="checkbox" style="width:auto"> Blend an earlier observation</label>
+        <label class="field-label" for="compare-date">Earlier observation date</label>
+        <input id="compare-date" type="date">
+        <label class="field-label" for="compare-opacity">Comparison opacity <span id="compare-opacity-label">45%</span></label>
+        <input id="compare-opacity" type="range" min="0" max="100" value="45" style="width:100%;accent-color:#48d7e8">
+        <p class="intro" style="margin-top:7px">Blends two satellite dates on the same map. This is a visual comparison, not an automated change classification.</p>
       </section>
       <section class="section">
         <div class="eyebrow">Sentinel-2 scene search</div>
@@ -105,6 +112,9 @@ import { searchSentinelScenes } from "./src/stac.js";
   const initialDate = new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-1));
   dateInput.value = iso(initialDate);
   dateInput.max = iso(now);
+  const compareDateInput = $('compare-date');
+  compareDateInput.value = iso(new Date(initialDate.getTime() - 30 * 86400000));
+  compareDateInput.max = iso(now);
   $('date-label').textContent = iso(initialDate);
   $('source-date').textContent = iso(initialDate);
   $('utc-clock').textContent = 'UTC '+pad(now.getUTCHours())+':'+pad(now.getUTCMinutes());
@@ -131,7 +141,9 @@ import { searchSentinelScenes } from "./src/stac.js";
   map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:'metric'}),'bottom-right');
   map.on('load', () => {
     map.addSource('sentinel-scenes', { type:'geojson', data:{type:'FeatureCollection',features:[]} });
-    map.addLayer({ id:'sentinel-scenes-points', type:'circle', source:'sentinel-scenes', paint:{'circle-radius':7,'circle-color':'#48d7e8','circle-stroke-color':'#061321','circle-stroke-width':2} });
+    map.addLayer({ id:'sentinel-scenes-fill', type:'fill', source:'sentinel-scenes', filter:['==',['geometry-type'],'Polygon'], paint:{'fill-color':'#48d7e8','fill-opacity':0.13} });
+    map.addLayer({ id:'sentinel-scenes-outline', type:'line', source:'sentinel-scenes', filter:['==',['geometry-type'],'Polygon'], paint:{'line-color':'#48d7e8','line-width':1.5} });
+    map.addLayer({ id:'sentinel-scenes-points', type:'circle', source:'sentinel-scenes', filter:['==',['geometry-type'],'Point'], paint:{'circle-radius':7,'circle-color':'#48d7e8','circle-stroke-color':'#061321','circle-stroke-width':2} });
   });
 
   function tileTemplate(product,date){
@@ -152,6 +164,20 @@ import { searchSentinelScenes } from "./src/stac.js";
     if(map.getSource(sourceId)) map.removeSource(sourceId);
     map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256, attribution:'NASA Global Imagery Browse Services (GIBS)'});
     map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':1}});
+    updateComparison();
+  }
+
+  function updateComparison(){
+    const sourceId='nasa-gibs-compare';
+    const layerId='nasa-gibs-compare-layer';
+    if(map.getLayer(layerId)) map.removeLayer(layerId);
+    if(map.getSource(sourceId)) map.removeSource(sourceId);
+    if(!$('compare-toggle').checked) return;
+    const product=$('layer').value;
+    const date=compareDateInput.value;
+    if(!date || date>iso(new Date())) return;
+    map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256,attribution:'NASA GIBS comparison imagery'});
+    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':Number($('compare-opacity').value)/100}});
   }
   map.on('load',()=>{
     updateImagery();
@@ -162,6 +188,13 @@ import { searchSentinelScenes } from "./src/stac.js";
   });
   $('layer').addEventListener('change',updateImagery);
   dateInput.addEventListener('change',updateImagery);
+  $('compare-toggle').addEventListener('change',updateComparison);
+  compareDateInput.addEventListener('change',updateComparison);
+  $('compare-opacity').addEventListener('input',()=>{
+    const value=Number($('compare-opacity').value);
+    $('compare-opacity-label').textContent=value+'%';
+    if(map.getLayer('nasa-gibs-compare-layer')) map.setPaintProperty('nasa-gibs-compare-layer','raster-opacity',value/100);
+  });
   document.querySelectorAll('[data-center]').forEach(button=>{
     button.addEventListener('click',()=>{
       const center=button.dataset.center.split(',').map(Number);
