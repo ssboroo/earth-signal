@@ -38,6 +38,7 @@ test('normalizeFeature returns safe scene metadata and skips incomplete features
     cloudCover: 12.5,
     platform: 'sentinel-2a',
     coordinates: [105, 47],
+    geometry: { type: 'Point', coordinates: [105, 47] },
     thumbnail: 'https://example.test/thumb.jpg'
   });
   assert.equal(normalizeFeature({ id: 'missing' }), null);
@@ -47,5 +48,40 @@ test('formatDateRange creates an ISO UTC interval', () => {
   assert.equal(
     formatDateRange(7, new Date('2026-11-14T00:00:00Z')),
     '2026-11-07T00:00:00.000Z/2026-11-14T00:00:00.000Z'
+  );
+});
+
+test('normalizeFeature preserves polygon footprints and does not treat missing cloud cover as zero', () => {
+  const polygon = {
+    id: 'S2B_POLYGON',
+    properties: { datetime: '2026-11-11T02:00:00Z', 'eo:cloud_cover': null },
+    bbox: [100, 40, 101, 41],
+    geometry: { type: 'Polygon', coordinates: [[[100,40],[101,40],[101,41],[100,41],[100,40]]] },
+    assets: {}
+  };
+  const scene = normalizeFeature(polygon);
+  assert.deepEqual(scene.coordinates, [100.5, 40.5]);
+  assert.equal(scene.cloudCover, null);
+  assert.deepEqual(scene.geometry, polygon.geometry);
+});
+
+test('searchSentinelScenes posts the map query and reports HTTP errors', async () => {
+  let request;
+  const scenes = await (await import('../src/stac.js')).searchSentinelScenes({
+    bbox: [98, 45, 110, 52],
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return { ok: true, json: async () => ({ features: [] }) };
+    }
+  });
+  assert.deepEqual(scenes, []);
+  assert.match(request.url, /earth-search\.aws\.element84\.com/);
+  assert.equal(request.options.method, 'POST');
+  await assert.rejects(
+    (await import('../src/stac.js')).searchSentinelScenes({
+      bbox: [98, 45, 110, 52],
+      fetchImpl: async () => ({ ok: false, status: 503 })
+    }),
+    /request failed \(503\)/
   );
 });
