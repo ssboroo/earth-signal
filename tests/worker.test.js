@@ -41,3 +41,17 @@ test('unknown API routes return JSON 404', async () => {
   assert.equal(response.status, 404);
   assert.equal(response.headers.get('content-type').includes('application/json'), true);
 });
+
+test('zone API stores a valid polygon and returns its measured area', async () => {
+  const ring = [[104,47],[104.01,47],[104.01,47.01],[104,47.01],[104,47]];
+  const response = await worker.fetch(new Request('https://earth-signal.test/api/zones', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-secret', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Mongolia test area', geometry: { type: 'Polygon', coordinates: [ring] } })
+  }), env());
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.zone.name, 'Mongolia test area');
+  assert.ok(body.zone.areaHa > 0);
+  assert.equal(body.zone.geometry.type, 'Polygon');
+});
