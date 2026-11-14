@@ -2,36 +2,35 @@
 
 **See what is changing on Earth.**
 
-A zero-cost-first Earth observation workspace using open satellite imagery and public geospatial catalogs.
+A zero-cost-first Earth observation workspace built on open satellite imagery, public STAC catalogs and in-browser geospatial analysis.
 
-## Live capabilities
+## Implemented
 
-- Interactive global map with NASA GIBS MODIS Terra, MODIS Aqua and VIIRS true-colour imagery.
-- Date selection for NASA imagery products.
-- Temporal comparison overlay: blend an earlier NASA observation over the selected date with adjustable opacity.
-- Region shortcuts, map coordinates and scale.
-- **Sentinel-2 scene discovery** from the public Element 84 Earth Search STAC API.
-- Scene search uses the visible map bounds, the last 30 days, and a cloud-cover filter below 40%.
-- Sentinel-2 scene footprints are drawn on the map; selecting a result zooms to its location.
-- No paid API key is required for the initial experience.
-
-## Data sources and limitations
-
-- **NASA GIBS** — near-real-time MODIS/VIIRS imagery. This is not live video; satellite acquisition, processing and publication introduce latency.
-- **Element 84 Earth Search STAC** — public Sentinel-2 L2A catalog search. The catalog returns scene metadata; this MVP does not yet render Sentinel-2 pixel assets as a continuous map layer.
-- **OpenStreetMap** — community-maintained basemap, subject to tile usage policy.
-
-Optical imagery can be obscured by clouds. A scene's cloud-cover metadata is an estimate and does not guarantee clear pixels over a particular site. A scene marker is an observation location, not a verified change alert.
+- Global MapLibre map with OpenStreetMap basemap and NASA GIBS MODIS Terra, MODIS Aqua and VIIRS true-colour imagery.
+- UTC imagery date selection and a second-date opacity blend for visual comparison.
+- Public Sentinel-2 L2A discovery from Element 84 Earth Search, bounded by the current map view.
+- Scene metadata, cloud-cover filtering and Sentinel-2 scene footprints.
+- On-demand Sentinel-2 spectral index sampling from public Cloud-Optimized GeoTIFF assets:
+  - **NDVI** — vegetation signal (NIR and red).
+  - **NDWI** — water signal (green and NIR).
+  - **NBR** — vegetation / burn-scar signal (NIR and SWIR2).
+- Optional Sentinel-2 Scene Classification Layer (SCL) masking for cloud, cirrus, shadow and snow classes when the catalog asset is available.
+- Per-scene index mean, valid-sample percentage and broad interpretation labels.
+- Draw, measure and save monitoring polygons in browser-local storage. Area is calculated geodesically in hectares.
+- Node.js unit tests and GitHub Actions CI.
 
 ## Run locally
 
-Requires Node.js 20+ only for the test suite. The web app itself is static.
+Requirements:
+- Modern browser with ES modules, WebGL and HTTPS access to public data services.
+- Python 3 (for the static local server).
+- Node.js 20+ (for tests).
 
 ```bash
 python -m http.server 8080
 ```
 
-Open http://localhost:8080. The app loads MapLibre GL JS and satellite data services from their public endpoints.
+Open http://localhost:8080.
 
 Run tests:
 
@@ -39,17 +38,25 @@ Run tests:
 npm test
 ```
 
-## Zero-cost operating model
+## Data and methodology notes
 
-No paid API key or application backend is required for this MVP. Public services have independent availability, fair-use, attribution and rate-limit policies. Production-scale processing, long-term storage, commercial SLAs and high-volume tile traffic may require funding or infrastructure.
+- **NASA GIBS** serves browse imagery. It is near-real-time, not live video; acquisition and processing latency applies.
+- **Element 84 Earth Search STAC** provides Sentinel-2 L2A scene metadata and links to spectral COG assets.
+- **GeoTIFF.js** is loaded on demand from jsDelivr to read small overview samples from remote COG assets using HTTP range requests.
+- Index analysis samples each selected scene at up to 256 pixels wide. It is a scene-wide exploratory summary, not a full-resolution classified raster or a substitute for professional remote-sensing validation.
+- NDVI, NDWI and NBR are normalized-difference indices. Their interpretation depends on season, biome, sensor conditions, atmospheric correction and local thresholds.
+- SCL masking is applied only if the scene provides a readable SCL asset. The UI explicitly reports whether it was applied.
+- The date-blend viewer is a visual comparison only. It does not register scenes or prove that a change occurred.
+- Monitoring zones are stored in the current browser only. They are not synced to a server or shared with another user/device.
+- OpenStreetMap public tiles and all satellite/catalog services have independent availability, attribution, fair-use and rate-limit policies.
 
-## Roadmap
+## Not yet production capabilities
 
-1. Sentinel-2 visual previews and cloud-aware image comparison.
-2. Before/after change detection using comparable scenes.
-3. NDVI, NDWI and NBR indices.
-4. User-defined monitoring zones and recurring checks.
-5. Validated alerts, downloadable reports and organization accounts.
+Automated recurring monitoring, co-registered before/after change detection, verified deforestation/mining/water alerts, full-resolution raster exports, multi-user accounts, server-side job queues, report delivery and organization-level access controls are not implemented. These require additional processing, validation and deployment infrastructure. This repository does not claim a live operational alert service.
+
+## Zero-cost-first architecture
+
+The prototype requires no paid API key and no application server. It relies on public services and browser-side processing. Public endpoints are not guaranteed to provide unlimited commercial use or service-level agreements. Large-area/high-frequency processing, durable shared storage and production traffic may require infrastructure and funding.
 
 ## License
 
