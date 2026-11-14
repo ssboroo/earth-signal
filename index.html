@@ -73,7 +73,7 @@
           <button class="action" id="zone-draw">Draw area</button>
           <button class="action" id="zone-save" disabled>Finish & save</button>
         </div>
-        <button class="action" id="zone-clear" style="width:100%;margin-top:7px">Clear saved zones</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"><button class="action" id="zone-export" disabled>Export GeoJSON</button><button class="action" id="zone-clear">Clear saved zones</button></div>
         <div id="zone-status" class="intro" role="status" aria-live="polite" style="margin-top:9px">No area selected</div>
         <div id="zone-list" style="display:grid;gap:5px;margin-top:7px"></div>
       </section>
@@ -192,7 +192,7 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
     if(!$('compare-toggle').checked) return;
     const product=$('layer').value;
     const date=compareDateInput.value;
-    if(!date || date>iso(new Date())) return;
+    if(!date || date>=dateInput.value || date>iso(new Date())) { zoneStatus.textContent='Choose an earlier date than the primary observation.'; return; }
     map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256,attribution:'NASA GIBS comparison imagery'});
     map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':Number($('compare-opacity').value)/100}},'sentinel-scenes-fill');
   }
@@ -244,6 +244,7 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
     }
     map.getSource('monitoring-zones')?.setData({type:'FeatureCollection',features});
     zoneList.replaceChildren();
+    $('zone-export').disabled=!savedZones.length;
     savedZones.forEach(zone=>{
       const item=document.createElement('div');
       item.className='metric';
@@ -282,6 +283,15 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
     map.doubleClickZoom.enable();
     zoneStatus.textContent=zone.name+' saved · '+areaHa.toFixed(2)+' hectares';
     renderZones();
+  });
+  $('zone-export').addEventListener('click',()=>{
+    if(!savedZones.length) return;
+    const geojson={type:'FeatureCollection',features:savedZones.map(zoneFeature)};
+    const blob=new Blob([JSON.stringify(geojson,null,2)],{type:'application/geo+json'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url; link.download='earth-signal-monitoring-zones.geojson';
+    link.click(); URL.revokeObjectURL(url);
   });
   $('zone-clear').addEventListener('click',()=>{
     savedZones=[]; draftPoints=[]; drawingZone=false; zoneSave.disabled=true; zoneDraw.textContent='Draw area';
