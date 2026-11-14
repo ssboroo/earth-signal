@@ -25,3 +25,11 @@ test('Sentinel footprints are layered above the satellite raster', () => {
   assert.ok(html.includes("id:'sentinel-scenes-outline'"));
   assert.ok(html.includes("},'sentinel-scenes-fill');"));
 });
+
+test('monitoring zones expose a session-scoped authenticated Cloudflare sync control', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="zone-cloud-token"'));
+  assert.ok(html.includes('id="zone-sync"'));
+  assert.ok(html.includes("sessionStorage.getItem('earth-signal-admin-token')"));
+  assert.ok(html.includes("fetch('/api/zones'"));
+});
