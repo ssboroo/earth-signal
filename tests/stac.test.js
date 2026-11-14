@@ -39,6 +39,7 @@ test('normalizeFeature returns safe scene metadata and skips incomplete features
     platform: 'sentinel-2a',
     coordinates: [105, 47],
     geometry: { type: 'Point', coordinates: [105, 47] },
+    assets: {},
     thumbnail: 'https://example.test/thumb.jpg'
   });
   assert.equal(normalizeFeature({ id: 'missing' }), null);
