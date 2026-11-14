@@ -37,3 +37,19 @@ test('polygonAreaHectares estimates geodesic area and rejects invalid rings', ()
   assert.ok(area > 120 && area < 130);
   assert.equal(polygonAreaHectares([[0,0],[1,1]]), null);
 });
+
+test('zero-valued index pixels remain valid measurements', async () => {
+  const { summarizeIndexPixels } = await import('../src/analytics.js');
+  const result = summarizeIndexPixels('ndvi', new Float32Array([0, -0.1, 0.4]));
+  assert.equal(result.validPixels, 3);
+  assert.ok(Math.abs(result.mean - 0.1) < 1e-6);
+});
+
+test('SCL no-data, saturated, shadow, cloud, cirrus and snow pixels are masked', async () => {
+  const { summarizeIndexPixels } = await import('../src/analytics.js');
+  const result = summarizeIndexPixels('ndvi', new Float32Array([0.2,0.2,0.2,0.2,0.2,0.2,0.2]), {
+    scl: new Uint8Array([0,1,3,8,9,10,11])
+  });
+  assert.equal(result.validPixels, 0);
+  assert.equal(result.maskedPixels, 7);
+});
