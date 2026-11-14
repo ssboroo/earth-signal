@@ -94,7 +94,7 @@
   const pad = n => String(n).padStart(2,'0');
   const iso = d => d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
   // GIBS daily global composites are not guaranteed on the acquisition day; default to a conservative recent date.
-  const initialDate = new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-2));
+  const initialDate = new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-1));
   dateInput.value = iso(initialDate);
   dateInput.max = iso(now);
   $('date-label').textContent = iso(initialDate);
