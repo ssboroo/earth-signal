@@ -123,7 +123,7 @@
   map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:'metric'}),'bottom-right');
 
   function tileTemplate(product,date){
-    return 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/'+product+'/default/'+date+'/GoogleMapsCompatible_Level9/{z}/{y}/{x}.'+products[product].ext;
+    return 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/all/'+product+'/default/'+date+'/GoogleMapsCompatible_Level9/{z}/{y}/{x}.'+products[product].ext;
   }
   function updateImagery(){
     const product = $('layer').value;
