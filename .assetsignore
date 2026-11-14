@@ -1,0 +1,9 @@
+.github/
+tests/
+migrations/
+worker/
+README.md
+LICENSE
+package.json
+wrangler.jsonc
+.assetsignore
