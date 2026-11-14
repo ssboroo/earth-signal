@@ -30,6 +30,7 @@ test('monitoring zones expose a session-scoped authenticated Cloudflare sync con
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.includes('id="zone-cloud-token"'));
   assert.ok(html.includes('id="zone-sync"'));
-  assert.ok(html.includes("sessionStorage.getItem('earth-signal-admin-token')"));
   assert.ok(html.includes("fetch('/api/zones'"));
+  assert.ok(!html.includes('sessionStorage.setItem'));
+  assert.ok(!html.includes('localStorage.setItem(\'earth-signal-admin-token\''));
 });
