@@ -37,7 +37,9 @@ test('zone API validates GeoJSON before writing', async () => {
 });
 
 test('unknown API routes return JSON 404', async () => {
-  const response = await worker.fetch(new Request('https://earth-signal.test/api/missing'), env());
+  const response = await worker.fetch(new Request('https://earth-signal.test/api/missing', {
+    headers: { Authorization: 'Bearer test-secret' }
+  }), env());
   assert.equal(response.status, 404);
   assert.equal(response.headers.get('content-type').includes('application/json'), true);
 });
