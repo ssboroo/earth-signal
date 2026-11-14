@@ -57,6 +57,11 @@ export function normalizeFeature(feature) {
   if (!coordinates) return null;
   if (!feature.geometry || typeof feature.geometry.type !== 'string' || !Array.isArray(feature.geometry.coordinates)) return null;
   const thumbnail = safeHttpsUrl(feature.assets?.thumbnail?.href);
+  const spectralAssets = {};
+  for (const key of ['blue','green','red','nir','swir16','swir22','scl']) {
+    const href = safeHttpsUrl(feature.assets?.[key]?.href);
+    if (href) spectralAssets[key] = { href };
+  }
   return {
     id: feature.id,
     date: feature.properties.datetime,
@@ -64,6 +69,7 @@ export function normalizeFeature(feature) {
     platform: String(feature.properties.platform || 'Sentinel-2'),
     coordinates,
     geometry: feature.geometry,
+    assets: spectralAssets,
     thumbnail
   };
 }
