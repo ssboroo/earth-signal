@@ -51,9 +51,11 @@ function centerFromGeometry(geometry, bbox) {
 
 export function normalizeFeature(feature) {
   if (!feature || typeof feature.id !== 'string' || !feature.properties?.datetime) return null;
-  const cloudCover = Number(feature.properties['eo:cloud_cover']);
+  const rawCloudCover = feature.properties['eo:cloud_cover'];
+  const cloudCover = rawCloudCover === null || rawCloudCover === undefined ? null : Number(rawCloudCover);
   const coordinates = centerFromGeometry(feature.geometry, feature.bbox);
   if (!coordinates) return null;
+  if (!feature.geometry || typeof feature.geometry.type !== 'string' || !Array.isArray(feature.geometry.coordinates)) return null;
   const thumbnail = safeHttpsUrl(feature.assets?.thumbnail?.href);
   return {
     id: feature.id,
@@ -61,6 +63,7 @@ export function normalizeFeature(feature) {
     cloudCover: Number.isFinite(cloudCover) ? cloudCover : null,
     platform: String(feature.properties.platform || 'Sentinel-2'),
     coordinates,
+    geometry: feature.geometry,
     thumbnail
   };
 }
