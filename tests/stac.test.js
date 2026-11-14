@@ -42,6 +42,8 @@ test('normalizeFeature returns safe scene metadata and skips incomplete features
     thumbnail: 'https://example.test/thumb.jpg'
   });
   assert.equal(normalizeFeature({ id: 'missing' }), null);
+  const withBands = normalizeFeature({ ...feature, assets: { red:{href:'https://data.test/red.tif'}, nir:{href:'https://data.test/nir.tif'}, swir22:{href:'http://invalid.test/swir.tif'} } });
+  assert.deepEqual(withBands.assets, { red:{href:'https://data.test/red.tif'}, nir:{href:'https://data.test/nir.tif'} });
 });
 
 test('formatDateRange creates an ISO UTC interval', () => {
