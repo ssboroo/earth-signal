@@ -14,6 +14,7 @@ A zero-cost-first Earth observation workspace built on open satellite imagery, p
 - Optional Sentinel-2 Scene Classification Layer masking for cloud, cirrus, shadow and snow classes when the catalog asset is available.
 - Per-scene index mean, valid-sample percentage and broad interpretation labels.
 - Draw, measure and save monitoring polygons in browser-local storage; export as GeoJSON.
+- Optional authenticated synchronization of locally saved monitoring polygons to shared Cloudflare D1 zones. The administrator token is held in the page only and is not written to browser storage.
 - Cloudflare Worker API for health checks, protected shared monitoring-zone CRUD, observation listing and R2 GeoJSON exports.
 - Cloudflare D1 schema for monitoring zones, Sentinel-2 scene candidates and monitoring-run history.
 - Six-hour scheduled Sentinel-2 catalog discovery for up to 20 active zones; new candidate scenes are stored in D1.
@@ -109,7 +110,7 @@ The local Worker requires a local D1 database for API routes. Apply migrations l
 - SCL masking is applied only if the scene provides a readable SCL asset. The UI reports whether it was applied.
 - The date-blend viewer is a visual comparison only. It does not register scenes or prove that a change occurred.
 - Scheduled monitoring currently discovers and stores candidate Sentinel-2 scenes intersecting each zone. It does **not** yet compute pixel-level before/after differences or issue verified deforestation, mining, fire or water alerts.
-- Shared API zones are protected by a single administrator bearer token. The current browser drawing UI still stores its own zones locally; end-user sign-in, role-based access and UI-to-shared-zone synchronization are future work.
+- Shared API zones are protected by a single administrator bearer token. The dashboard offers an explicit sync action to upload local polygons and refresh shared zones; the token is entered by the administrator and is not persisted. This is a single-admin workflow, not end-user sign-in or role-based organization access.
 - The Worker scans at most 20 active zones per six-hour run and queries a maximum of 10 scenes per zone. Public catalog availability and rate limits apply.
 - OpenStreetMap public tiles and all satellite/catalog services have independent availability, attribution, fair-use and rate-limit policies.
 
@@ -117,7 +118,7 @@ The local Worker requires a local D1 database for API routes. Apply migrations l
 
 This is a deployable Cloudflare foundation, not a claim that a live Cloudflare deployment already exists. A real Cloudflare account, D1 database UUID, R2 bucket, API token and account ID are required for the first deployment. Those account credentials are not available in this repository session.
 
-Full-resolution raster processing, co-registered before/after change detection, verified environmental alerts, user authentication, organization-level access controls, notification delivery and operational SLAs still require further implementation and validation. Free-tier quotas are finite; sustained traffic and processing may incur charges.
+Full-resolution raster processing, co-registered before/after change detection, verified environmental alerts, multi-user authentication, organization-level access controls, Telegram/email notification delivery and operational SLAs still require further implementation and validation. Free-tier quotas are finite; sustained traffic and processing may incur charges.
 
 ## License
 
