@@ -53,6 +53,13 @@
         <p class="intro" style="margin-top:9px">Imagery availability varies by product. Recent dates may not be published yet.</p>
       </section>
       <section class="section">
+        <div class="eyebrow">Sentinel-2 scene search</div>
+        <p class="intro">Find real Copernicus Sentinel-2 L2A observations over the current map area, filtered to scenes with less than 40% cloud cover.</p>
+        <button class="action" id="search-scenes" style="width:100%;margin-top:10px;text-align:center">Search recent Sentinel-2 scenes</button>
+        <div id="scene-status" class="intro" role="status" aria-live="polite" style="margin-top:9px">Ready · last 30 days</div>
+        <div id="scene-results" style="display:grid;gap:8px;margin-top:9px"></div>
+      </section>
+      <section class="section">
         <div class="eyebrow">Explore region</div>
         <div class="quick">
           <button data-center="104,47" data-zoom="4">🇲🇳 Mongolia</button>
@@ -86,7 +93,8 @@
   </main>
 </div>
 <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-<script>
+<script type="module">
+import { searchSentinelScenes } from "./src/stac.js";
 (() => {
   const $ = (id) => document.getElementById(id);
   const dateInput = $('date');
@@ -121,6 +129,10 @@
   });
   map.addControl(new maplibregl.NavigationControl({showCompass:true}),'top-right');
   map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:'metric'}),'bottom-right');
+  map.on('load', () => {
+    map.addSource('sentinel-scenes', { type:'geojson', data:{type:'FeatureCollection',features:[]} });
+    map.addLayer({ id:'sentinel-scenes-points', type:'circle', source:'sentinel-scenes', paint:{'circle-radius':7,'circle-color':'#48d7e8','circle-stroke-color':'#061321','circle-stroke-width':2} });
+  });
 
   function tileTemplate(product,date){
     return 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/all/'+product+'/default/'+date+'/GoogleMapsCompatible_Level9/{z}/{y}/{x}.'+products[product].ext;
@@ -160,6 +172,41 @@
     $('coords').textContent=e.lngLat.lat.toFixed(3)+'°, '+e.lngLat.lng.toFixed(3)+'°';
   });
   map.on('mouseout',()=>{$('coords').textContent='Move over map';});
+
+  const sceneStatus = $('scene-status');
+  const sceneResults = $('scene-results');
+  const searchButton = $('search-scenes');
+  searchButton.addEventListener('click', async () => {
+    searchButton.disabled = true;
+    searchButton.textContent = 'Searching catalog…';
+    sceneStatus.textContent = 'Querying the public Earth Search STAC catalog…';
+    sceneResults.replaceChildren();
+    try {
+      const bounds = map.getBounds();
+      const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+      const scenes = await searchSentinelScenes({ bbox, days: 30, limit: 12 });
+      const features = scenes.map(scene => ({ type:'Feature', properties:{id:scene.id,date:scene.date,cloudCover:scene.cloudCover}, geometry:{type:'Point',coordinates:scene.coordinates} }));
+      map.getSource('sentinel-scenes')?.setData({type:'FeatureCollection',features});
+      sceneStatus.textContent = scenes.length ? scenes.length + ' Sentinel-2 scenes · last 30 days · cloud cover under 40%' : 'No matching scenes found. Try zooming out or choosing another region.';
+      scenes.forEach(scene => {
+        const card = document.createElement('button');
+        card.type = 'button'; card.className = 'action';
+        card.style.cssText = 'width:100%;display:grid;gap:4px';
+        const title = document.createElement('strong'); title.textContent = scene.platform.toUpperCase();
+        const meta = document.createElement('span'); meta.textContent = new Date(scene.date).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}) + ' UTC';
+        const cloud = document.createElement('span'); cloud.textContent = scene.cloudCover === null ? 'Cloud cover: unavailable' : 'Cloud cover: ' + scene.cloudCover.toFixed(1) + '%';
+        const identifier = document.createElement('span'); identifier.textContent = scene.id; identifier.style.cssText = 'color:#91a5ba;font-size:9px;overflow-wrap:anywhere';
+        card.append(title,meta,cloud,identifier);
+        card.addEventListener('click',()=>map.flyTo({center:scene.coordinates,zoom:8,duration:900}));
+        sceneResults.append(card);
+      });
+    } catch (error) {
+      sceneStatus.textContent = error.message || 'Satellite catalog search failed. Check your connection and retry.';
+    } finally {
+      searchButton.disabled = false;
+      searchButton.textContent = 'Search recent Sentinel-2 scenes';
+    }
+  });
 })();
 </script>
 </body>
