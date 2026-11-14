@@ -104,6 +104,22 @@ async function handleApi(request, env) {
     }
   }
 
+  if (url.pathname === '/api/runs' && request.method === 'GET') {
+    try {
+      const rows = await env.DB.prepare(
+        'SELECT r.id, r.zone_id, z.name AS zone_name, r.status, r.scenes_added, r.started_at, r.finished_at, r.details_json FROM monitoring_runs r INNER JOIN monitoring_zones z ON z.id = r.zone_id ORDER BY r.started_at DESC LIMIT 200'
+      ).all();
+      return json({ runs: (rows.results || []).map(row => ({
+        id: row.id, zoneId: row.zone_id, zoneName: row.zone_name,
+        status: row.status, scenesAdded: row.scenes_added,
+        startedAt: row.started_at, finishedAt: row.finished_at,
+        details: JSON.parse(row.details_json || '{}')
+      })) });
+    } catch {
+      return json({ error: 'Could not read monitoring run history' }, 503);
+    }
+  }
+
   if (url.pathname === '/api/exports/zones' && request.method === 'POST') {
     if (!env.REPORTS) return json({ error: 'R2 report storage is not configured' }, 503);
     try {
