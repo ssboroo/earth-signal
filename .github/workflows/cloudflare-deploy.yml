@@ -34,6 +34,6 @@ jobs:
             echo "Set the real D1 database UUID in wrangler.jsonc before deploying."
             exit 1
           fi
-          npx --yes wrangler@latest d1 migrations apply earth-signal-db --remote
+          npx --yes wrangler@latest d1 migrations apply DB --remote
           printf '%s' "$EARTH_SIGNAL_API_TOKEN" | npx --yes wrangler@latest secret put API_TOKEN
           npx --yes wrangler@latest deploy
