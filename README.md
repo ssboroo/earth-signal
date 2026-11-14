@@ -16,7 +16,7 @@ A zero-cost-first Earth observation workspace built on open satellite imagery, p
   - **NBR** — vegetation / burn-scar signal (NIR and SWIR2).
 - Optional Sentinel-2 Scene Classification Layer (SCL) masking for cloud, cirrus, shadow and snow classes when the catalog asset is available.
 - Per-scene index mean, valid-sample percentage and broad interpretation labels.
-- Draw, measure and save monitoring polygons in browser-local storage. Area is calculated geodesically in hectares.
+- Draw, measure and save monitoring polygons in browser-local storage. Area is calculated geodesically in hectares; zones can be exported as GeoJSON.
 - Node.js unit tests and GitHub Actions CI.
 
 ## Run locally
