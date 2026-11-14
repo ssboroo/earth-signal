@@ -72,6 +72,7 @@ All API responses are JSON. `/api/health` is public; all other routes require `A
 | POST | `/api/zones` | Save a named GeoJSON Polygon |
 | DELETE | `/api/zones/:id` | Delete a monitoring polygon |
 | GET | `/api/observations` | List discovered Sentinel-2 scene candidates |
+| GET | `/api/runs` | List scheduled monitoring run history |
 | POST | `/api/exports/zones` | Store a GeoJSON snapshot in R2 |
 
 Example zone payload:
