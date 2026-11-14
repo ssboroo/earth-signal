@@ -74,7 +74,7 @@
           <button class="action" id="zone-draw">Draw area</button>
           <button class="action" id="zone-save" disabled>Finish & save</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"><button class="action" id="zone-export" disabled>Export GeoJSON</button><button class="action" id="zone-clear">Clear saved zones</button></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"><button class="action" id="zone-export" disabled>Export GeoJSON</button><button class="action" id="zone-clear">Clear local zones</button></div>
         <div style="display:grid;gap:7px;margin-top:9px">
           <input id="zone-cloud-token" type="password" autocomplete="off" placeholder="Cloudflare admin API token" aria-label="Cloudflare admin API token" style="width:100%;box-sizing:border-box;background:#0b1724;border:1px solid #294158;border-radius:8px;padding:10px;color:#e5edf5;font:inherit;font-size:11px">
           <button class="action" id="zone-sync" style="width:100%">Sync with Cloudflare</button>
@@ -236,7 +236,6 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
   const zoneSave=$('zone-save');
   const zoneCloudToken=$('zone-cloud-token');
   const zoneSync=$('zone-sync');
-  zoneCloudToken.value=sessionStorage.getItem('earth-signal-admin-token')||'';
   let drawingZone=false;
   let draftPoints=[];
   let savedZones=[];
@@ -314,7 +313,6 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
   zoneSync.addEventListener('click',async()=>{
     const token=zoneCloudToken.value.trim();
     if(!token){zoneStatus.textContent='Enter the Cloudflare administrator API token to synchronize.';zoneCloudToken.focus();return;}
-    sessionStorage.setItem('earth-signal-admin-token',token);
     zoneSync.disabled=true;zoneSync.textContent='Synchronizing…';
     try{
       const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
