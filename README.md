@@ -41,7 +41,7 @@ The GitHub deployment workflow can provision the D1 database and R2 bucket autom
 Requirements: a Cloudflare account with Workers, D1 and R2 enabled, plus a GitHub repository with Actions enabled.
 
 1. Create a Cloudflare API token with account-level permissions:
-   - Workers Scripts: Edit
+   - Workers Admin (account-level; required because the workflow creates the first Worker)
    - D1: Read and D1: Write
    - Workers R2 Storage: Write
 2. In GitHub, open **Settings → Secrets and variables → Actions** and add:
