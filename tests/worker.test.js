@@ -96,3 +96,13 @@ test('zone API enforces a request-size limit even without Content-Length', async
   }), env());
   assert.equal(response.status, 413);
 });
+
+test('monitoring run history is available only to authenticated administrators', async () => {
+  const denied = await worker.fetch(new Request('https://earth-signal.test/api/runs'), env());
+  assert.equal(denied.status, 401);
+  const allowed = await worker.fetch(new Request('https://earth-signal.test/api/runs', {
+    headers: { Authorization: 'Bearer test-secret' }
+  }), env());
+  assert.equal(allowed.status, 200);
+  assert.deepEqual((await allowed.json()).runs, []);
+});
