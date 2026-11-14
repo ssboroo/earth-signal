@@ -20,7 +20,7 @@ test('computes a pixel index from matching band arrays and masks invalid samples
     red: new Float32Array([2000, 8000, 0]),
     scl: new Uint8Array([4, 9, 4])
   });
-  assert.equal(result.mean, 0.6);
+  assert.ok(Math.abs(result.mean - 0.6) < 1e-6);
   assert.equal(result.validPixels, 1);
   assert.equal(result.maskedPixels, 1);
   assert.equal(result.totalPixels, 3);
