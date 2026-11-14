@@ -44,6 +44,7 @@ Requirements: a Cloudflare account with Workers, D1 and R2 enabled, plus a GitHu
    - Workers Admin (account-level; required because the workflow creates the first Worker)
    - D1: Read and D1: Write
    - Workers R2 Storage: Write
+   - Account Settings: Read (for Wrangler account metadata)
 2. In GitHub, open **Settings → Secrets and variables → Actions** and add:
    - `CLOUDFLARE_API_TOKEN` — the scoped Cloudflare API token.
    - `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account ID.
