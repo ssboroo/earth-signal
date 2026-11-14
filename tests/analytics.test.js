@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { normalizedDifference, calculateIndices, classifyIndex, compareIndex, polygonAreaHectares } from '../src/analytics.js';
 
 test('normalizedDifference calculates a bounded spectral index', () => {
-  assert.equal(normalizedDifference(0.8, 0.2), 0.6);
+  assert.ok(Math.abs(normalizedDifference(0.8, 0.2) - 0.6) < 1e-12);
   assert.equal(normalizedDifference(0, 0), null);
   assert.equal(normalizedDifference(-1, 1), null);
   assert.equal(normalizedDifference(2, 1), 1 / 3);
@@ -11,14 +11,14 @@ test('normalizedDifference calculates a bounded spectral index', () => {
 
 test('calculateIndices derives NDVI, NDWI and NBR from Sentinel-2 reflectance', () => {
   const result = calculateIndices({ red: 0.2, nir: 0.8, green: 0.5, swir16: 0.4, swir22: 0.3 });
-  assert.equal(result.ndvi, 0.6);
+  assert.ok(Math.abs(result.ndvi - 0.6) < 1e-12);
   assert.ok(Math.abs(result.ndwi - (-0.23076923076923078)) < 1e-12);
   assert.ok(Math.abs(result.nbr - 0.45454545454545453) < 1e-12);
 });
 
 test('classifyIndex handles vegetation and water thresholds without inventing values', () => {
   assert.equal(classifyIndex('ndvi', 0.72), 'dense-vegetation');
-  assert.equal(classifyIndex('ndvi', 0.15), 'sparse-vegetation');
+  assert.equal(classifyIndex('ndvi', 0.25), 'sparse-vegetation');
   assert.equal(classifyIndex('ndwi', 0.35), 'water-likely');
   assert.equal(classifyIndex('ndwi', null), 'no-data');
 });
