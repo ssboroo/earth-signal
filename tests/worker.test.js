@@ -87,3 +87,12 @@ test('scheduled Sentinel search uses the exact monitoring polygon, not its bound
     globalThis.fetch = originalFetch;
   }
 });
+
+test('zone API enforces a request-size limit even without Content-Length', async () => {
+  const response = await worker.fetch(new Request('https://earth-signal.test/api/zones', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-secret', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'x'.repeat(110_000), geometry: { type: 'Polygon', coordinates: [] } })
+  }), env());
+  assert.equal(response.status, 413);
+});
