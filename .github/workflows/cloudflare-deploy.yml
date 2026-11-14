@@ -52,7 +52,7 @@ jobs:
           buckets=$(curl --fail-with-body --silent --show-error "$api/r2/buckets" "${auth[@]}")
           bucket_exists=$(jq -r '[.result.buckets[]? | select(.name == "earth-signal-reports")] | length' <<< "$buckets")
           if [ "$bucket_exists" = "0" ]; then
-            curl --fail-with-body --silent --show-error -X POST "$api/r2/buckets" "${auth[@]}" --data '{"name":"earth-signal-reports","location":"APAC"}' >/dev/null
+            curl --fail-with-body --silent --show-error -X POST "$api/r2/buckets" "${auth[@]}" --data '{"name":"earth-signal-reports","locationHint":"apac"}' >/dev/null
           fi
 
           echo "Injecting account-specific D1 UUID into the deployment config..."
