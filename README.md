@@ -42,8 +42,8 @@ Requirements: a Cloudflare account with Workers, D1 and R2 enabled, plus a GitHu
 
 1. Create a Cloudflare API token with account-level permissions:
    - Workers Scripts: Edit
-   - D1: Edit
-   - R2 Storage: Edit
+   - D1: Read and D1: Write
+   - Workers R2 Storage: Write
 2. In GitHub, open **Settings → Secrets and variables → Actions** and add:
    - `CLOUDFLARE_API_TOKEN` — the scoped Cloudflare API token.
    - `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account ID.
