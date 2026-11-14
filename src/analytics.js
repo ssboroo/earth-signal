@@ -58,7 +58,7 @@ export function polygonAreaHectares(ring) {
   return squareMetres / 10000;
 }
 
-export function summarizeIndexPixels(index, pixels, { scl = null, nodata = 0 } = {}) {
+export function summarizeIndexPixels(index, pixels, { scl = null, nodata = null } = {}) {
   if (!Array.isArray(pixels) && !ArrayBuffer.isView(pixels)) throw new TypeError('Pixels must be an array or typed array');
   if (scl && scl.length !== pixels.length) throw new RangeError('SCL and spectral band dimensions must match');
   let sum = 0, valid = 0, masked = 0;
@@ -66,8 +66,8 @@ export function summarizeIndexPixels(index, pixels, { scl = null, nodata = 0 } =
   for (let i = 0; i < pixels.length; i++) {
     const value = pixels[i];
     const sceneClass = scl?.[i];
-    if (scl && [3, 8, 9, 10, 11].includes(sceneClass)) { masked++; continue; }
-    if (!Number.isFinite(value) || value === nodata || value < -1 || value > 1) continue;
+    if (scl && [0, 1, 3, 8, 9, 10, 11].includes(sceneClass)) { masked++; continue; }
+    if (!Number.isFinite(value) || (nodata !== null && value === nodata) || value < -1 || value > 1) continue;
     sum += value;
     valid++;
     const bucket = classifyIndex(index, value);
