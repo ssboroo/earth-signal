@@ -39,3 +39,12 @@ test('GitHub deploy workflow gates deployment on all required secrets', () => {
   assert.ok(workflow.includes('d1 migrations apply DB --remote'));
   assert.ok(workflow.includes('wrangler@latest deploy'));
 });
+
+test('deployment provisions D1 and R2 resources automatically before deploy', () => {
+  const workflow = read('../.github/workflows/cloudflare-deploy.yml');
+  assert.ok(workflow.includes('/d1/database'));
+  assert.ok(workflow.includes('/r2/buckets'));
+  assert.ok(workflow.includes('REPLACE_WITH_D1_DATABASE_ID'));
+  assert.ok(workflow.includes('earth-signal-reports'));
+  assert.ok(workflow.includes('d1 migrations apply earth-signal-db --remote'));
+});
