@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker from '../worker/index.js';
+import worker, { scanZone } from '../worker/index.js';
 
 function env(overrides = {}) {
   return {
@@ -67,4 +67,23 @@ test('zone API rejects polygons with holes until hole-aware area measurement is 
     body: JSON.stringify({ name: 'zone with hole', geometry: { type: 'Polygon', coordinates: [outer, hole] } })
   }), env());
   assert.equal(response.status, 400);
+});
+
+test('scheduled Sentinel search uses the exact monitoring polygon, not its bounding box', async () => {
+  const geometry = { type: 'Polygon', coordinates: [[[104,47],[104.01,47],[104.01,47.01],[104,47.01],[104,47]]] };
+  let requestBody;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return new Response(JSON.stringify({ features: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const db = { prepare() { return { bind() { return this; }, async run() { return { meta: { changes: 0 } }; } }; } };
+  try {
+    const result = await scanZone({ id: 'zone-1', geometry_json: JSON.stringify(geometry) }, { DB: db }, '2026-11-14T00:00:00.000Z');
+    assert.equal(result.scenes, 0);
+    assert.deepEqual(requestBody.intersects, geometry);
+    assert.equal('bbox' in requestBody, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
