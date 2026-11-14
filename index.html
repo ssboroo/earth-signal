@@ -69,12 +69,17 @@
       </section>
       <section class="section">
         <div class="eyebrow">Monitoring zones</div>
-        <p class="intro">Draw a polygon on the map to define an area of interest. Areas are measured geodesically and stored in this browser only.</p>
+        <p class="intro">Draw a polygon on the map to define an area of interest. Save locally or synchronize shared monitoring zones to your Cloudflare database.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px">
           <button class="action" id="zone-draw">Draw area</button>
           <button class="action" id="zone-save" disabled>Finish & save</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px"><button class="action" id="zone-export" disabled>Export GeoJSON</button><button class="action" id="zone-clear">Clear saved zones</button></div>
+        <div style="display:grid;gap:7px;margin-top:9px">
+          <input id="zone-cloud-token" type="password" autocomplete="off" placeholder="Cloudflare admin API token" aria-label="Cloudflare admin API token" style="width:100%;box-sizing:border-box;background:#0b1724;border:1px solid #294158;border-radius:8px;padding:10px;color:#e5edf5;font:inherit;font-size:11px">
+          <button class="action" id="zone-sync" style="width:100%">Sync with Cloudflare</button>
+          <span class="intro">Admin token is kept in this browser tab only. Do not share it.</span>
+        </div>
         <div id="zone-status" class="intro" role="status" aria-live="polite" style="margin-top:9px">No area selected</div>
         <div id="zone-list" style="display:grid;gap:5px;margin-top:7px"></div>
       </section>
@@ -229,6 +234,9 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
   const zoneList=$('zone-list');
   const zoneDraw=$('zone-draw');
   const zoneSave=$('zone-save');
+  const zoneCloudToken=$('zone-cloud-token');
+  const zoneSync=$('zone-sync');
+  zoneCloudToken.value=sessionStorage.getItem('earth-signal-admin-token')||'';
   let drawingZone=false;
   let draftPoints=[];
   let savedZones=[];
@@ -301,6 +309,42 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
     try { localStorage.removeItem('earth-signal-zones'); } catch {}
     zoneStatus.textContent='All saved zones cleared.';
     renderZones();
+  });
+
+  zoneSync.addEventListener('click',async()=>{
+    const token=zoneCloudToken.value.trim();
+    if(!token){zoneStatus.textContent='Enter the Cloudflare administrator API token to synchronize.';zoneCloudToken.focus();return;}
+    sessionStorage.setItem('earth-signal-admin-token',token);
+    zoneSync.disabled=true;zoneSync.textContent='Synchronizing…';
+    try{
+      const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+      const initial=await fetch('/api/zones',{headers});
+      if(!initial.ok) throw new Error(initial.status===401?'Administrator token was rejected.':initial.status===503?'Cloudflare database is unavailable.':'Cloudflare API request failed ('+initial.status+').');
+      const current=await initial.json();
+      const remote=Array.isArray(current.zones)?current.zones:[];
+      let uploaded=0;
+      for(const zone of savedZones){
+        const geometry={type:'Polygon',coordinates:[zone.coordinates]};
+        const exists=remote.some(item=>item.name===zone.name&&JSON.stringify(item.geometry)===JSON.stringify(geometry));
+        if(exists) continue;
+        const response=await fetch('/api/zones',{method:'POST',headers,body:JSON.stringify({name:zone.name,geometry})});
+        if(!response.ok){const body=await response.json().catch(()=>({}));throw new Error(body.error||'Could not upload '+zone.name);}
+        uploaded++;
+      }
+      const refreshed=await fetch('/api/zones',{headers});
+      if(!refreshed.ok) throw new Error('Cloudflare synchronization completed partially; could not refresh shared zones.');
+      const body=await refreshed.json();
+      savedZones=(body.zones||[]).filter(zone=>zone.geometry?.type==='Polygon'&&Array.isArray(zone.geometry.coordinates?.[0])).map(zone=>({
+        id:zone.id,name:zone.name,coordinates:zone.geometry.coordinates[0],areaHa:Number(zone.areaHa)||0
+      }));
+      localStorage.setItem('earth-signal-zones',JSON.stringify(savedZones));
+      zoneStatus.textContent='Cloud sync complete · '+savedZones.length+' shared zones · '+uploaded+' uploaded';
+      renderZones();
+    }catch(error){
+      zoneStatus.textContent=error.message||'Cloud synchronization failed.';
+    }finally{
+      zoneSync.disabled=false;zoneSync.textContent='Sync with Cloudflare';
+    }
   });
   map.on('load',renderZones);
 
