@@ -26,13 +26,6 @@ function validatePolygon(geometry) {
     polygonAreaHectares(ring) > 0;
 }
 
-function zoneBounds(geometry) {
-  const points = geometry.coordinates[0];
-  const longitudes = points.map(point => point[0]);
-  const latitudes = points.map(point => point[1]);
-  return [Math.min(...longitudes), Math.min(...latitudes), Math.max(...longitudes), Math.max(...latitudes)];
-}
-
 async function listZones(env) {
   const result = await env.DB.prepare(
     'SELECT id, name, geometry_json, area_ha, active, created_at, updated_at FROM monitoring_zones ORDER BY created_at DESC LIMIT 500'
@@ -131,8 +124,6 @@ async function handleApi(request, env) {
 async function scanZone(zone, env, timestamp) {
   let geometry;
   try { geometry = JSON.parse(zone.geometry_json); } catch { return { scenes: 0, error: 'invalid-geometry' }; }
-  const bbox = zoneBounds(geometry);
-  if (bbox[0] >= bbox[2] || bbox[1] >= bbox[3]) return { scenes: 0, error: 'invalid-bounds' };
   const end = new Date(timestamp);
   const start = new Date(end.getTime() - 45 * 86400000);
   const response = await fetch('https://earth-search.aws.element84.com/v1/search', {
@@ -140,7 +131,7 @@ async function scanZone(zone, env, timestamp) {
     headers: { 'content-type': 'application/json', accept: 'application/geo+json' },
     body: JSON.stringify({
       collections: ['sentinel-2-l2a'],
-      bbox,
+      intersects: geometry,
       datetime: `${start.toISOString()}/${end.toISOString()}`,
       limit: 10,
       sortby: [{ field: 'properties.datetime', direction: 'desc' }],
@@ -208,4 +199,4 @@ export default {
   }
 };
 
-export { runScheduledMonitoring, validatePolygon };
+export { runScheduledMonitoring, scanZone, validatePolygon };
