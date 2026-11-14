@@ -44,7 +44,7 @@ test('deployment provisions D1 and R2 resources automatically before deploy', ()
   const workflow = read('../.github/workflows/cloudflare-deploy.yml');
   assert.ok(workflow.includes('/d1/database'));
   assert.ok(workflow.includes('/r2/buckets'));
-  assert.ok(workflow.includes('REPLACE_WITH_D1_DATABASE_ID'));
+  assert.ok(read('../wrangler.jsonc').includes('REPLACE_WITH_D1_DATABASE_ID'));
   assert.ok(workflow.includes('earth-signal-reports'));
   assert.ok(workflow.includes('locationHint'));
   assert.ok(workflow.includes('d1 migrations apply earth-signal-db --remote'));
