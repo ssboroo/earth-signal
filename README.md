@@ -35,59 +35,29 @@ No Railway, Supabase or Vercel service is required. The current application keep
 
 ## First-time Cloudflare setup
 
-The repository is configured, but a Cloudflare account must create its own D1 database and R2 bucket. Resource IDs and account credentials are account-specific and are intentionally not fabricated or committed.
+The GitHub deployment workflow can provision the D1 database and R2 bucket automatically. No database UUID needs to be manually committed.
 
-Requirements: Node.js 20+ and a Cloudflare account with Workers, D1 and R2 enabled.
+Requirements: a Cloudflare account with Workers, D1 and R2 enabled, plus a GitHub repository with Actions enabled.
 
-1. Clone the repository and install no runtime dependencies (Wrangler is invoked with `npx`).
-2. Authenticate Wrangler:
+1. Create a Cloudflare API token with account-level permissions:
+   - Workers Scripts: Edit
+   - D1: Edit
+   - R2 Storage: Edit
+2. In GitHub, open **Settings → Secrets and variables → Actions** and add:
+   - `CLOUDFLARE_API_TOKEN` — the scoped Cloudflare API token.
+   - `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account ID.
+   - `EARTH_SIGNAL_API_TOKEN` — a long, randomly generated secret for protected administrator API routes.
+3. Push to the `main` branch or manually run **Actions → Cloudflare deploy → Run workflow**.
+4. The workflow runs tests, finds or creates the `earth-signal-db` D1 database, finds or creates the `earth-signal-reports` R2 bucket, injects the account-specific database UUID into the deployment config, applies migrations, stores the API token as a Worker secret and deploys the application.
+5. Open the successful workflow log to find the `workers.dev` deployment URL. A custom domain can be attached from the Cloudflare dashboard.
 
-   ```bash
-   npx wrangler@latest login
-   ```
+Resource creation is idempotent: subsequent deployments reuse the existing D1 database and R2 bucket. If credentials are absent, deployment is deliberately skipped; tests still run. Never commit API tokens or account credentials.
 
-3. Create the D1 database:
-
-   ```bash
-   npx wrangler@latest d1 create earth-signal-db
-   ```
-
-4. Copy the returned database UUID into `wrangler.jsonc`, replacing `REPLACE_WITH_D1_DATABASE_ID`.
-5. Create the report bucket:
-
-   ```bash
-   npx wrangler@latest r2 bucket create earth-signal-reports
-   ```
-
-6. Apply the database migration:
-
-   ```bash
-   npm run db:migrate
-   ```
-
-7. Set a long, randomly generated API bearer token. Never commit this value:
-
-   ```bash
-   npx wrangler@latest secret put API_TOKEN
-   ```
-
-8. Deploy:
-
-   ```bash
-   npm run deploy
-   ```
-
-The app will be available at the `*.workers.dev` URL printed by Wrangler. A custom domain can be attached from the Cloudflare dashboard.
+For local development, authenticate Wrangler with `npx wrangler@latest login`. Create the D1 database and R2 bucket manually only if you want to run the full stack locally; then replace the placeholder D1 UUID in `wrangler.jsonc`.
 
 ## GitHub automatic deployment
 
-After the one-time D1/R2 setup and after committing the real D1 database UUID to `wrangler.jsonc`, add these repository Actions secrets:
-
-- `CLOUDFLARE_API_TOKEN` — a scoped API token with permission to deploy Workers and manage D1/R2 resources for this account.
-- `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account ID.
-- `EARTH_SIGNAL_API_TOKEN` — a long random bearer token used by protected API routes.
-
-The Cloudflare workflow runs the test suite, applies remote D1 migrations, uploads the API token as a Worker secret and deploys the Worker. Without all three secrets it deliberately skips deployment rather than failing or exposing credentials.
+The workflow is `.github/workflows/cloudflare-deploy.yml`. It runs on pushes to `main` and manual dispatch. It provisions Cloudflare resources, applies database migrations and deploys the Worker after the three Actions secrets are configured.
 
 ## API
 
