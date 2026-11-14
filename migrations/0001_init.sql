@@ -5,11 +5,12 @@ CREATE TABLE IF NOT EXISTS monitoring_zones (
   area_ha REAL NOT NULL CHECK(area_ha > 0),
   active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  last_checked_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_monitoring_zones_active_created
-  ON monitoring_zones(active, created_at);
+  ON monitoring_zones(active, last_checked_at, created_at);
 
 CREATE TABLE IF NOT EXISTS scene_observations (
   id TEXT PRIMARY KEY,
