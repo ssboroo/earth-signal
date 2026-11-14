@@ -79,7 +79,7 @@
       </section>
       <section class="section">
         <div class="eyebrow">Data integrity</div>
-        <div class="legend"><span class="dot"></span> Public satellite service reachable</div>
+        <div class="legend"><span class="dot"></span> NASA GIBS imagery layer selected</div>
         <p class="notice" style="margin-top:10px">This is near-real-time satellite imagery, not live video. Acquisition, processing and publication introduce delays. Clouds, darkness and sensor resolution affect visibility. A visual difference is not automatically a verified environmental event.</p>
       </section>
       <div class="notice">Data: NASA Global Imagery Browse Services (GIBS). Basemap: OpenStreetMap contributors. External services have independent availability and usage policies.</div>
@@ -185,7 +185,7 @@ import { searchSentinelScenes } from "./src/stac.js";
       const bounds = map.getBounds();
       const bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
       const scenes = await searchSentinelScenes({ bbox, days: 30, limit: 12 });
-      const features = scenes.map(scene => ({ type:'Feature', properties:{id:scene.id,date:scene.date,cloudCover:scene.cloudCover}, geometry:{type:'Point',coordinates:scene.coordinates} }));
+      const features = scenes.map(scene => ({ type:'Feature', properties:{id:scene.id,date:scene.date,cloudCover:scene.cloudCover}, geometry:scene.geometry }));
       map.getSource('sentinel-scenes')?.setData({type:'FeatureCollection',features});
       sceneStatus.textContent = scenes.length ? scenes.length + ' Sentinel-2 scenes · last 30 days · cloud cover under 40%' : 'No matching scenes found. Try zooming out or choosing another region.';
       scenes.forEach(scene => {
