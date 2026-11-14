@@ -163,7 +163,7 @@ import { searchSentinelScenes } from "./src/stac.js";
     if(map.getLayer(layerId)) map.removeLayer(layerId);
     if(map.getSource(sourceId)) map.removeSource(sourceId);
     map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256, attribution:'NASA Global Imagery Browse Services (GIBS)'});
-    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':1}});
+    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':1}},'sentinel-scenes-fill');
     updateComparison();
   }
 
@@ -177,7 +177,7 @@ import { searchSentinelScenes } from "./src/stac.js";
     const date=compareDateInput.value;
     if(!date || date>iso(new Date())) return;
     map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256,attribution:'NASA GIBS comparison imagery'});
-    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':Number($('compare-opacity').value)/100}});
+    map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':Number($('compare-opacity').value)/100}},'sentinel-scenes-fill');
   }
   map.on('load',()=>{
     updateImagery();
