@@ -8,7 +8,7 @@
     "dev": "npx --yes wrangler@latest dev",
     "deploy": "npx --yes wrangler@latest deploy",
     "db:create": "npx --yes wrangler@latest d1 create earth-signal-db",
-    "db:migrate": "npx --yes wrangler@latest d1 migrations apply DB --remote"
+    "db:migrate": "npx --yes wrangler@latest d1 migrations apply earth-signal-db --remote"
   },
   "engines": {
     "node": ">=20"
