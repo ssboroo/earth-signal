@@ -58,6 +58,7 @@
         <label class="field-label" for="compare-opacity">Comparison opacity <span id="compare-opacity-label">45%</span></label>
         <input id="compare-opacity" type="range" min="0" max="100" value="45" style="width:100%;accent-color:#48d7e8">
         <p class="intro" style="margin-top:7px">Blends two satellite dates on the same map. This is a visual comparison, not an automated change classification.</p>
+        <div id="compare-status" class="intro" role="status" aria-live="polite"></div>
       </section>
       <section class="section">
         <div class="eyebrow">Sentinel-2 scene search</div>
@@ -192,7 +193,8 @@ import { classifyIndex, polygonAreaHectares } from "./src/analytics.js";
     if(!$('compare-toggle').checked) return;
     const product=$('layer').value;
     const date=compareDateInput.value;
-    if(!date || date>=dateInput.value || date>iso(new Date())) { zoneStatus.textContent='Choose an earlier date than the primary observation.'; return; }
+    if(!date || date>=dateInput.value || date>iso(new Date())) { $('compare-status').textContent='Choose an earlier date than the primary observation.'; return; }
+    $('compare-status').textContent='';
     map.addSource(sourceId,{type:'raster',tiles:[tileTemplate(product,date)],tileSize:256,attribution:'NASA GIBS comparison imagery'});
     map.addLayer({id:layerId,type:'raster',source:sourceId,paint:{'raster-opacity':Number($('compare-opacity').value)/100}},'sentinel-scenes-fill');
   }
